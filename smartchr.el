@@ -28,29 +28,88 @@
 
 ;; (global-set-key (kbd "=") (smartchr '(" = " " == " " === ")))
 
+;; substitute `!!' with cursor
+;; (global-set-key (kbd "{")
+;;              (smartchr '("{ `!!' }" "{ \"`!!'\" }" "{")))
+
 
 ;;; TODO:
 ;; Error with head version of auto-complete.el
 ;; reported by k1LoW
 
-(eval-when-compile (require 'cl))
+(require 'cl)
+
+(defgroup smartchr nil
+  "smartchr group"
+  :group 'smartchr)
+
+(defcustom smartchr-template-cursor-re (rx "`!!'")
+  "cursor"
+  :group 'smartchr)
+
+(defstruct (smartchr-struct
+            (:constructor smartchr-make-struct
+                          (&key cleanup-fn insert-fn)))
+  cleanup-fn insert-fn)
 
 (defun smartchr (list-of-string)
-  (lexical-let ((los list-of-string)
-                (last-word "")
+  (lexical-let ((smartchr-structs (mapcar 'smartchr-parse list-of-string))
+                (last-struct nil)
                 (count 0))
     (lambda ()
       (interactive)
       (if (eq this-command real-last-command)
           (incf count)
         (setq count 0))
-      (when (>= count (length los))
+      (when (>= count (length smartchr-structs))
         (setq count 0))
-      (let ((word (nth count los)))
+      ;; cleanup -> insert
+      (let ((struct (nth count smartchr-structs)))
+        (assert (smartchr-struct-p struct))
         (when (eq this-command real-last-command)
-          (delete-backward-char (length last-word)))
-        (setq last-word word)
-        (insert word)))))
+          (assert (smartchr-struct-p last-struct))
+          (funcall (smartchr-struct-cleanup-fn last-struct)))
+        (setq last-struct struct)
+        (funcall (smartchr-struct-insert-fn struct))))))
 
+(defun smartchr-parse (template)
+  (cond
+   ((string-match smartchr-template-cursor-re template)
+    (destructuring-bind (pre post) (split-string template smartchr-template-cursor-re)
+      (lexical-let ((pre pre) (post post))
+        (smartchr-make-struct
+         :cleanup-fn (lambda ()
+                       (delete-backward-char (length pre))
+                       (delete-backward-char (- (length post))))
+         :insert-fn (lambda ()
+                      (insert pre)
+                      (save-excursion (insert post)))))))
+   (t
+    (lexical-let ((template template))
+    (smartchr-make-struct
+     :cleanup-fn (lambda () (delete-backward-char (length template)))
+     :insert-fn (lambda () (insert template)))))))
+
+(dont-compile
+  (when (fboundp 'expectations)
+    (expectations
+      (desc "smartchr-parse smartchr-template-cursor-re")
+      (expect "{  }"
+        (with-temp-buffer
+          (let ((smartchr-struct-cursor-re  "`!!'"))
+            (let ((struct (smartchr-parse "{ `!!' }")))
+              (assert (smartchr-struct-p struct))
+              (funcall (smartchr-struct-insert-fn struct))
+              (buffer-string)))))
+
+      (expect ""
+        (with-temp-buffer
+          (let ((smartchr-struct-cursor-re  "`!!'"))
+            (let ((struct (smartchr-parse "{ `!!' }")))
+              (assert (smartchr-struct-p struct))
+              (funcall (smartchr-struct-insert-fn struct))
+              (funcall (smartchr-struct-cleanup-fn struct))
+              (buffer-string)))))
+      )))
 
 (provide 'smartchr)
