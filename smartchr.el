@@ -32,6 +32,20 @@
 ;; (global-set-key (kbd "{")
 ;;              (smartchr '("{ `!!' }" "{ \"`!!'\" }" "{")))
 
+;;; Commands:
+;;
+;; Below are complete command list:
+;;
+;;  `smartchr-toggle-enable'
+;;    Toggle smartchr enable/disable.
+;;
+;;; Customizable Options:
+;;
+;; Below are customizable option list:
+;;
+;;  `smartchr-template-cursor-re'
+;;    cursor
+;;    default = (rx "`!!'")
 
 ;;; TODO:
 ;; Error with head version of auto-complete.el
@@ -52,7 +66,12 @@
                           (&key cleanup-fn insert-fn)))
   cleanup-fn insert-fn)
 
+(defvar smartchr-disable
+  "If nil, smartchr disabled."
+  nil)
+
 (defun smartchr (&rest list-of-string)
+  "Insert several candidates with single key."
   (let ((list-of-string (if (consp (car-safe list-of-string))
                             (car-safe list-of-string)
                           list-of-string)))
@@ -61,6 +80,8 @@
                   (count 0))
       (lambda ()
         (interactive)
+        (if smartchr-disable
+            (insert (format "%s" (this-command-keys)))
         (if (eq this-command real-last-command)
             (incf count)
           (setq count 0))
@@ -73,7 +94,7 @@
             (assert (smartchr-struct-p last-struct))
             (funcall (smartchr-struct-cleanup-fn last-struct)))
           (setq last-struct struct)
-          (funcall (smartchr-struct-insert-fn struct)))))))
+          (funcall (smartchr-struct-insert-fn struct))))))))
 
 (defun smartchr-parse (template)
   (cond
@@ -106,6 +127,10 @@
      :cleanup-fn (lambda () (delete-backward-char (length template)))
      :insert-fn (lambda () (insert template)))))))
 
+(defun smartchr-toggle-enable ()
+  "Toggle smartchr enable/disable."
+  (interactive)
+(setq smartchr-disable (not smartchr-disable)))
 
 ;;;; Tests!!
 (dont-compile
