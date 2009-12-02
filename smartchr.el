@@ -36,8 +36,12 @@
 ;;
 ;; Below are complete command list:
 ;;
-;;  `smartchr-toggle-enable'
+;;  `smartchr-toggle'
 ;;    Toggle smartchr enable/disable.
+;;  `smartchr-on'
+;;    Enable smartchr.
+;;  `smartchr-off'
+;;    Disable smartchr.
 ;;
 ;;; Customizable Options:
 ;;
@@ -62,9 +66,8 @@
                           (&key cleanup-fn insert-fn)))
   cleanup-fn insert-fn)
 
-(defvar smartchr-disable
-  "If nil, smartchr disabled."
-  nil)
+(defvar smartchr-disabled nil
+  "Non nil means smartchr enabled.")
 
 (defun smartchr (&rest list-of-string)
   "Insert several candidates with single key."
@@ -76,21 +79,21 @@
                   (count 0))
       (lambda ()
         (interactive)
-        (if smartchr-disable
+        (if smartchr-disabled
             (insert (format "%s" (this-command-keys)))
-        (if (eq this-command real-last-command)
-            (incf count)
-          (setq count 0))
-        (when (>= count (length smartchr-structs))
-          (setq count 0))
-        ;; cleanup -> insert
-        (let ((struct (nth count smartchr-structs)))
-          (assert (smartchr-struct-p struct))
-          (when (eq this-command real-last-command)
-            (assert (smartchr-struct-p last-struct))
-            (funcall (smartchr-struct-cleanup-fn last-struct)))
-          (setq last-struct struct)
-          (funcall (smartchr-struct-insert-fn struct))))))))
+          (if (eq this-command real-last-command)
+              (incf count)
+            (setq count 0))
+          (when (>= count (length smartchr-structs))
+            (setq count 0))
+          ;; cleanup -> insert
+          (let ((struct (nth count smartchr-structs)))
+            (assert (smartchr-struct-p struct))
+            (when (eq this-command real-last-command)
+              (assert (smartchr-struct-p last-struct))
+              (funcall (smartchr-struct-cleanup-fn last-struct)))
+            (setq last-struct struct)
+            (funcall (smartchr-struct-insert-fn struct))))))))
 
 (defun smartchr-parse (template)
   (cond
@@ -119,71 +122,81 @@
                       (save-excursion (insert post)))))))
    (t
     (lexical-let ((template template))
-    (smartchr-make-struct
-     :cleanup-fn (lambda () (delete-backward-char (length template)))
-     :insert-fn (lambda () (insert template)))))))
+      (smartchr-make-struct
+       :cleanup-fn (lambda () (delete-backward-char (length template)))
+       :insert-fn (lambda () (insert template)))))))
 
-(defun smartchr-toggle-enable ()
+(defun smartchr-toggle ()
   "Toggle smartchr enable/disable."
   (interactive)
-(setq smartchr-disable (not smartchr-disable)))
+  (setq smartchr-disabled (not smartchr-disabled)))
+
+(defun smartchr-on ()
+  "Enable smartchr."
+  (interactive)
+  (setq smartchr-disabled nil))
+
+(defun smartchr-off ()
+  "Disable smartchr."
+  (interactive)
+  (setq smartchr-disabled t))
 
 ;;;; Tests!!
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "smartchr-parse smartchr-template-cursor-re")
-      (expect "{  }"
-        (with-temp-buffer
-          (let ((smartchr-struct-cursor-re  "`!!'"))
-            (let ((struct (smartchr-parse "{ `!!' }")))
-              (assert (smartchr-struct-p struct))
-              (funcall (smartchr-struct-insert-fn struct))
-              (buffer-string)))))
+     (desc "smartchr-parse smartchr-template-cursor-re")
+     (expect "{  }"
+             (with-temp-buffer
+               (let ((smartchr-struct-cursor-re  "`!!'"))
+                 (let ((struct (smartchr-parse "{ `!!' }")))
+                   (assert (smartchr-struct-p struct))
+                   (funcall (smartchr-struct-insert-fn struct))
+                   (buffer-string)))))
 
-      (expect ""
-        (with-temp-buffer
-          (let ((smartchr-struct-cursor-re  "`!!'"))
-            (let ((struct (smartchr-parse "{ `!!' }")))
-              (assert (smartchr-struct-p struct))
-              (funcall (smartchr-struct-insert-fn struct))
-              (funcall (smartchr-struct-cleanup-fn struct))
-              (buffer-string)))))
+     (expect ""
+             (with-temp-buffer
+               (let ((smartchr-struct-cursor-re  "`!!'"))
+                 (let ((struct (smartchr-parse "{ `!!' }")))
+                   (assert (smartchr-struct-p struct))
+                   (funcall (smartchr-struct-insert-fn struct))
+                   (funcall (smartchr-struct-cleanup-fn struct))
+                   (buffer-string)))))
 
-      (desc "template allow function")
-      (expect t
-        (with-temp-buffer
-          (let ((smartchr-struct-cursor-re  "`!!'")
-                (fn-called nil))
-            (let ((struct (smartchr-parse (lambda () (setq fn-called t)))))
-              (assert (smartchr-struct-p struct))
-              (funcall (smartchr-struct-insert-fn struct))
-              fn-called))))
+     (desc "template allow function")
+     (expect t
+             (with-temp-buffer
+               (let ((smartchr-struct-cursor-re  "`!!'")
+                     (fn-called nil))
+                 (let ((struct (smartchr-parse (lambda () (setq fn-called t)))))
+                   (assert (smartchr-struct-p struct))
+                   (funcall (smartchr-struct-insert-fn struct))
+                   fn-called))))
 
-      (expect "hi"
-        (with-temp-buffer
-          (let ((smartchr-struct-cursor-re  "`!!'"))
-            (let ((struct (smartchr-parse (lambda () "hi"))))
-              (assert (smartchr-struct-p struct))
-              (funcall (smartchr-struct-insert-fn struct))
-              (buffer-string)))))
+     (expect "hi"
+             (with-temp-buffer
+               (let ((smartchr-struct-cursor-re  "`!!'"))
+                 (let ((struct (smartchr-parse (lambda () "hi"))))
+                   (assert (smartchr-struct-p struct))
+                   (funcall (smartchr-struct-insert-fn struct))
+                   (buffer-string)))))
 
-      (desc "smartchr-parse pass argument if argument is already struct")
-      (expect t
-        (smartchr-struct-p
-         (smartchr-parse
-          (smartchr-make-struct
-           :cleanup-fn (lambda ())
-           :insert-fn (lambda ())))))
+     (desc "smartchr-parse pass argument if argument is already struct")
+     (expect t
+             (smartchr-struct-p
+              (smartchr-parse
+               (smartchr-make-struct
+                :cleanup-fn (lambda ())
+                :insert-fn (lambda ())))))
 
-      (desc "smartchr-parse rest args")
-      (with-temp-buffer
-          (let ((smartchr-struct-cursor-re  "`!!'"))
-            (let ((cmd (smartchr "a" "b"))
-                  (do-nothing (lambda () (interactive))))
-              (call-interactively cmd)
-              (buffer-string))))
-      )))
+     (desc "smartchr-parse rest args")
+     (with-temp-buffer
+       (let ((smartchr-struct-cursor-re  "`!!'"))
+         (let ((cmd (smartchr "a" "b"))
+               (do-nothing (lambda () (interactive))))
+           (call-interactively cmd)
+           (buffer-string))))
+     )))
 
 
 (provide 'smartchr)
