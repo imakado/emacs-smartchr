@@ -77,10 +77,10 @@
     (lexical-let ((smartchr-structs (mapcar 'smartchr-parse list-of-string))
                   (last-struct nil)
                   (count 0))
-      (lambda ()
-        (interactive)
+      (lambda (&optional arg)
+        (interactive "p")
         (if smartchr-disabled
-            (insert (format "%s" (this-command-keys)))
+            (self-insert-command arg)
           (if (eq this-command real-last-command)
               (incf count)
             (setq count 0))
