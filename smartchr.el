@@ -1,4 +1,4 @@
-;;; smartchr.el --  emacs version of smartchr.vim
+;;; smartchr.el ---  emacs version of smartchr.vim
 
 ;; Copyright (c) 2009 by IMAKADO.
 
