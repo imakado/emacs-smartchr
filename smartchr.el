@@ -1,4 +1,4 @@
-;;; smartchr.el ---  emacs version of smartchr.vim
+;;; smartchr.el ---  emacs version of smartchr.vim  -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2009 by IMAKADO.
 
@@ -53,34 +53,34 @@
   cleanup-fn insert-fn)
 
 (defun smartchr (&rest list-of-string)
-  (let ((list-of-string (if (consp (car-safe list-of-string))
-                            (car-safe list-of-string)
-                          list-of-string)))
-    (lexical-let ((smartchr-structs (mapcar 'smartchr-parse list-of-string))
-                  (last-struct nil)
-                  (count 0))
-      (lambda ()
-        (interactive)
-        (if (eq this-command real-last-command)
-            (incf count)
-          (setq count 0))
-        (when (>= count (length smartchr-structs))
-          (setq count 0))
-        ;; cleanup -> insert
-        (let ((struct (nth count smartchr-structs)))
-          (assert (smartchr-struct-p struct))
-          (when (eq this-command real-last-command)
-            (assert (smartchr-struct-p last-struct))
-            (funcall (smartchr-struct-cleanup-fn last-struct)))
-          (setq last-struct struct)
-          (funcall (smartchr-struct-insert-fn struct)))))))
+  (let* ((list-of-string (if (consp (car-safe list-of-string))
+                             (car-safe list-of-string)
+                           list-of-string))
+         (smartchr-structs (mapcar 'smartchr-parse list-of-string))
+         (last-struct nil)
+         (count 0))
+    (lambda ()
+      (interactive)
+      (if (eq this-command real-last-command)
+          (incf count)
+        (setq count 0))
+      (when (>= count (length smartchr-structs))
+        (setq count 0))
+      ;; cleanup -> insert
+      (let ((struct (nth count smartchr-structs)))
+        (assert (smartchr-struct-p struct))
+        (when (eq this-command real-last-command)
+          (assert (smartchr-struct-p last-struct))
+          (funcall (smartchr-struct-cleanup-fn last-struct)))
+        (setq last-struct struct)
+        (funcall (smartchr-struct-insert-fn struct))))))
 
 (defun smartchr-parse (template)
   (cond
    ((smartchr-struct-p template)
     template)
    ((functionp template)
-    (lexical-let ((str-or-struct (funcall template)))
+    (let ((str-or-struct (funcall template)))
       (cond
        ((smartchr-struct-p str-or-struct)
         str-or-struct)
@@ -92,7 +92,7 @@
          :insert-fn (lambda ()))))))
    ((string-match smartchr-template-cursor-re template)
     (destructuring-bind (pre post) (split-string template smartchr-template-cursor-re)
-      (lexical-let ((pre pre) (post post))
+      (let ((pre pre) (post post))
         (smartchr-make-struct
          :cleanup-fn (lambda ()
                        (delete-backward-char (length pre))
@@ -101,10 +101,10 @@
                       (insert pre)
                       (save-excursion (insert post)))))))
    (t
-    (lexical-let ((template template))
-    (smartchr-make-struct
-     :cleanup-fn (lambda () (delete-backward-char (length template)))
-     :insert-fn (lambda () (insert template)))))))
+    (let ((template template))
+      (smartchr-make-struct
+       :cleanup-fn (lambda () (delete-char (- (length template))))
+       :insert-fn (lambda () (insert template)))))))
 
 
 ;;;; Tests!!
