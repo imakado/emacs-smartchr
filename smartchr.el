@@ -5,6 +5,7 @@
 ;; Author: IMAKADO <ken.imakado@gmail.com>
 ;; blog: http://d.hatena.ne.jp/IMAKADO (japanese)
 ;; Prefix: smartchr
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,7 +38,9 @@
 ;; Error with head version of auto-complete.el
 ;; reported by k1LoW
 
-(require 'cl)
+(eval-when-compile
+  (require 'cl-lib)
+  (require 'rx))
 
 (defgroup smartchr nil
   "smartchr group"
@@ -47,9 +50,9 @@
   "cursor"
   :group 'smartchr)
 
-(defstruct (smartchr-struct
-            (:constructor smartchr-make-struct
-                          (&key cleanup-fn insert-fn)))
+(cl-defstruct (smartchr-struct
+               (:constructor smartchr-make-struct
+                             (&key cleanup-fn insert-fn)))
   cleanup-fn insert-fn)
 
 (defun smartchr (&rest list-of-string)
@@ -62,15 +65,15 @@
     (lambda ()
       (interactive)
       (if (eq this-command real-last-command)
-          (incf count)
+          (cl-incf count)
         (setq count 0))
       (when (>= count (length smartchr-structs))
         (setq count 0))
       ;; cleanup -> insert
       (let ((struct (nth count smartchr-structs)))
-        (assert (smartchr-struct-p struct))
+        (cl-assert (smartchr-struct-p struct))
         (when (eq this-command real-last-command)
-          (assert (smartchr-struct-p last-struct))
+          (cl-assert (smartchr-struct-p last-struct))
           (funcall (smartchr-struct-cleanup-fn last-struct)))
         (setq last-struct struct)
         (funcall (smartchr-struct-insert-fn struct))))))
@@ -91,7 +94,7 @@
          :cleanup-fn (lambda ())
          :insert-fn (lambda ()))))))
    ((string-match smartchr-template-cursor-re template)
-    (destructuring-bind (pre post) (split-string template smartchr-template-cursor-re)
+    (cl-destructuring-bind (pre post) (split-string template smartchr-template-cursor-re)
       (let ((pre pre) (post post))
         (smartchr-make-struct
          :cleanup-fn (lambda ()
