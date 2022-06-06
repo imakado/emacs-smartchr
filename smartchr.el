@@ -104,8 +104,8 @@
       (let ((pre pre) (post post))
         (smartchr-make-struct
          :cleanup-fn (lambda ()
-                       (delete-backward-char (length pre))
-                       (delete-backward-char (- (length post))))
+                       (delete-char (- (length pre)))
+                       (delete-char (length post)))
          :insert-fn (lambda ()
                       (insert pre)
                       (save-excursion (insert post)))))))
