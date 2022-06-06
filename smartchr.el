@@ -3,9 +3,11 @@
 ;; Copyright (c) 2009 by IMAKADO.
 
 ;; Author: IMAKADO <ken.imakado@gmail.com>
+;; URL: https://github.com/imakado/emacs-smartchr
 ;; blog: http://d.hatena.ne.jp/IMAKADO (japanese)
 ;; Prefix: smartchr
 ;; Package-Requires: ((emacs "24.3"))
+;; LICENSE: GPL-2.0-or-later
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,16 +40,18 @@
 ;; Error with head version of auto-complete.el
 ;; reported by k1LoW
 
+;;; Code:
 (eval-when-compile
   (require 'cl-lib)
   (require 'rx))
 
 (defgroup smartchr nil
-  "smartchr group"
+  "Support input several candidates with a single key."
   :group 'smartchr)
 
-(defcustom smartchr-template-cursor-re (rx "`!!'")
-  "cursor"
+(defcustom smartchr-template-cursor-re (eval-when-compile (rx "`!!'"))
+  "A regexp pattern that searches for the position where the cursor moves when inserting."
+  :type 'regexp
   :group 'smartchr)
 
 (cl-defstruct (smartchr-struct
@@ -56,6 +60,7 @@
   cleanup-fn insert-fn)
 
 (defun smartchr (&rest list-of-string)
+  "Make an interactive command to support input several LIST-OF-STRING candidates."
   (let* ((list-of-string (if (consp (car-safe list-of-string))
                              (car-safe list-of-string)
                            list-of-string))
@@ -79,6 +84,7 @@
         (funcall (smartchr-struct-insert-fn struct))))))
 
 (defun smartchr-parse (template)
+  "Return smartchr-struct by TEMPLATE."
   (cond
    ((smartchr-struct-p template)
     template)
@@ -169,4 +175,4 @@
 
 
 (provide 'smartchr)
-;; smartchr.el ends here.
+;;; smartchr.el ends here.
