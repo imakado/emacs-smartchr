@@ -70,9 +70,9 @@
   :group 'smartchr)
 
 
-(defun smartchr-indent-function (marker-start marker-end)
-  (indent-region (marker-position marker-start)
-                 (marker-position marker-end)))
+(defun smartchr-indent-function (start-pos end-pos)
+  (indent-region start-pos
+                 end-pos))
 
 (cl-defstruct (smartchr-struct
                (:constructor smartchr-make-struct
@@ -101,10 +101,8 @@
            (smartchr-structs (mapcar 'smartchr-parse list-of-string))
            (marker-start nil)
            (marker-end nil)
-           (last-marker-start nil)
-           (last-marker-end nil)
            (first-time-p nil)
-           (region-activated-p nil))
+           )
       (lambda (&optional arg)
         (interactive "p")
         
@@ -123,7 +121,7 @@
         
         (if smartchr-disabled
             (self-insert-command arg)
-          (cond 
+          (cond
            ((eq this-command real-last-command)
             (cl-incf count)
             (setq first-time-p nil))
@@ -140,7 +138,6 @@
             (set-marker-insertion-type marker-start nil)
             (set-marker-insertion-type marker-end t)
             
-            ;; 繰り返しの実行ではない場合
             (unless (region-active-p)
               (setq region-text ""))
             )
@@ -155,11 +152,9 @@
               (cl-assert (smartchr-struct-p last-struct))
               (funcall (smartchr-struct-cleanup-fn last-struct) marker-start marker-end)
               )
-            (setq last-struct struct
-                  last-marker-start (copy-marker marker-start)
-                  last-marker-end (copy-marker marker-end))
+            (setq last-struct struct)
+
             (funcall (smartchr-struct-insert-fn struct) marker-start marker-end)
-                                        ;(message "%S %S %S" start-point marker-start marker-end)
             
             (smartchr-subst-cursor-text
              struct region-text start-point (marker-position marker-end))
@@ -191,15 +186,6 @@
         (replace-match region-text)))
     (when p
       (goto-char p))))
-
-
-(defun smartchr-region-cleanup-fn (pre post region-text)
-  ;; (delete-backward-char (length pre))
-  (delete-char (- (length pre)))
-  ;; (delete-backward-char (- (length (concat region-text post))))
-  (delete-char (length (concat region-text post)))
-  )
-
 
 (defun smartchr-parse (template)
   "Return smartchr-struct by TEMPLATE."
@@ -245,7 +231,6 @@
            :region-end re
            :region-text region-text))))
      
-     ;;; xxx ___
      ((string-match smartchr-region-text-re template)
       (cl-destructuring-bind (pre post)
           (split-string template smartchr-region-text-re)
@@ -254,11 +239,10 @@
           (smartchr-make-struct
            :template template
            :cleanup-fn (lambda (marker-start marker-end)
-                         ;; (message ":cleanup-fn:  %S : %S" marker-start marker-end)
                          (delete-region (marker-position marker-start)
                                         (marker-position marker-end)))
            :insert-fn (lambda (marker-start marker-end)
-                        ;; (message ":insert-fn before:  %S : %S" marker-start marker-end)
+                        (message "%s" 'smartchr-region-text-re)
                         (set-marker marker-start (point))
                         (set-marker marker-end (point))
                         (insert template)
