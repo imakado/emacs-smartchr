@@ -69,10 +69,21 @@
   :type  'string
   :group 'smartchr)
 
+(defun smartchr-should-do-p  ()
+  (not (minibufferp)))
 
-(defun smartchr-indent-function (start-pos end-pos)
-  (indent-region start-pos
-                 end-pos))
+(defun smartchr-indent-function (start-marker end-marker)
+  (indent-region (marker-position start-marker)
+                 (marker-position end-marker)))
+
+(defun smartchr-indent-function-each-line (start-marker end-marker)
+  (save-excursion
+    (goto-char (marker-position start-marker))
+    (move-beginning-of-line 1)
+    (call-interactively 'indent-according-to-mode)
+    (cl-loop while (<= (point) (marker-position end-marker))
+             do (progn (call-interactively 'indent-according-to-mode)
+                       (move-beginning-of-line 2)))))
 
 (cl-defstruct (smartchr-struct
                (:constructor smartchr-make-struct
@@ -119,7 +130,8 @@
               (t ;; (setq region-text "")
                ))
         
-        (if smartchr-disabled
+        (if (or smartchr-disabled
+                (not (smartchr-should-do-p)))
             (self-insert-command arg)
           (cond
            ((eq this-command real-last-command)
@@ -160,6 +172,12 @@
              struct region-text start-point (marker-position marker-end))
             (smartchr-subst-region-text
              struct region-text start-point (marker-position marker-end))
+
+
+            (when smartchr-execute-indent-command-after-expand
+              (funcall smartchr-indent-function
+                       marker-start
+                       marker-end))
             ))))))
 
 (defun smartchr-delete-region-quietly (s e)
@@ -218,12 +236,7 @@
            :insert-fn (lambda (marker-start marker-end)
                         (set-marker marker-start (point))
                         (set-marker marker-end (point))
-                        (insert template)
-                        
-                        (when smartchr-execute-indent-command-after-expand
-                          (funcall smartchr-indent-function
-                                   (marker-position marker-start)
-                                   (marker-position marker-end))))
+                        (insert template))
            :region-start rs
            :region-end re
            :region-text region-text)))
@@ -239,12 +252,7 @@
                         (message "%s" 'smartchr-region-text-re)
                         (set-marker marker-start (point))
                         (set-marker marker-end (point))
-                        (insert template)
-                        
-                        (when smartchr-execute-indent-command-after-expand
-                          (funcall smartchr-indent-function
-                                   (marker-position marker-start)
-                                   (marker-position marker-end))))
+                        (insert template))
            :region-start rs
            :region-end re
            :region-text region-text)))
@@ -258,12 +266,7 @@
          :insert-fn (lambda (marker-start marker-end)
                       (set-marker marker-start (point))
                       (set-marker marker-end (point))
-                      (insert template)
-                      
-                      (when smartchr-execute-indent-command-after-expand
-                        (funcall smartchr-indent-function
-                                 (marker-position marker-start)
-                                 (marker-position marker-end))))
+                      (insert template))
          :region-start rs
          :region-end re
          :region-text region-text))))))
