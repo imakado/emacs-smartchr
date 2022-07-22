@@ -1,10 +1,13 @@
-;;; smartchr.el ---  emacs version of smartchr.vim
+;;; smartchr.el ---  emacs version of smartchr.vim  -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2009 by IMAKADO.
 
 ;; Author: IMAKADO <ken.imakado@gmail.com>
+;; URL: https://github.com/imakado/emacs-smartchr
 ;; blog: http://d.hatena.ne.jp/IMAKADO (japanese)
 ;; Prefix: smartchr
+;; Package-Requires: ((emacs "24.3"))
+;; LICENSE: GPL-2.0-or-later
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,13 +40,16 @@
 ;; Error with head version of auto-complete.el
 ;; reported by k1LoW
 
+
+;;; Code:
 (eval-when-compile
-  (require 'cl))
-(require 'cl-lib)
+  (require 'cl-lib)
+  (require 'rx))
+
 
 (require 'imakado)
 (defgroup smartchr nil
-  "Smartchr group."
+  "Support input several candidates with a single key."
   :group 'smartchr)
 
 (defcustom smartchr-template-cursor-re (rx "`!!'")
@@ -83,7 +89,7 @@
   "Non nil means smartchr enabled.")
 
 (defun smartchr (&rest list-of-string)
-  "Insert several candidates with single key."
+  "Make an interactive command to support input several LIST-OF-STRING candidates."
   (let ((list-of-string (if (consp (car-safe list-of-string))
                             (car-safe list-of-string)
                           list-of-string)))
@@ -195,6 +201,7 @@
 
 
 (defun smartchr-parse (template)
+  "Return smartchr-struct by TEMPLATE."
   (let* ((rs nil)
          (re nil)
          (region-text "")
@@ -296,6 +303,7 @@
   "Disable smartchr."
   (interactive)
   (setq smartchr-disabled t))
+
 
 (provide 'smartchr)
 ;;; smartchr.el ends here.
