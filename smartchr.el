@@ -50,19 +50,23 @@
   :group 'smartchr)
 
 (defcustom smartchr-template-cursor-re (rx "`!!'")
-  "Regular expression to be replaced with the cursor position after expanded template string."
+  "Regular expression to be replaced with the cursor after expanded template string."
+  :type  'string
   :group 'smartchr)
 
 (defcustom smartchr-execute-indent-command-after-expand nil
   "Controls indentation of after text expansions."
+  :type 'boolean
   :group 'smartchr)
 
 (defcustom smartchr-indent-function 'smartchr-indent-function
   "Function to perform indentation."
+  :type 'function
   :group 'smartchr)
 
 (defcustom smartchr-region-text-re (rx "___")
-  "Regular expression replaced with the cursor position or selected region after expanded template string."
+  "Regular expression replaced with the cursor or selected region after expanded template string."
+  :type  'string
   :group 'smartchr)
 
 
