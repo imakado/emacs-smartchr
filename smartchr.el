@@ -4,7 +4,6 @@
 
 ;; Author: IMAKADO <ken.imakado@gmail.com>
 ;; URL: https://github.com/imakado/emacs-smartchr
-;; blog: http://d.hatena.ne.jp/IMAKADO (japanese)
 ;; Prefix: smartchr
 ;; Package-Requires: ((emacs "24.3"))
 ;; LICENSE: GPL-2.0-or-later
